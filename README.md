@@ -3,7 +3,7 @@ PlaytestPlugin
 
 ## Usage
 
-    cordova plugin add https://github.com/bartjezzz/playtest-phonegap-plugin.git
+    cordova plugin add https://github.com/playtesthq/playtest-phonegap-plugin.git
 
 
 ### Integration
