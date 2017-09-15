@@ -8,7 +8,17 @@
 
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
-#define kPTConnectVersionString @"1.1.3"
+#define kPTConnectVersionString @"1.1.7"
+
+@protocol PTConnectDelegate <NSObject>
+@optional
+- (void)didSuccessfullyCreateSession;
+- (void)didFailCreateSession:(NSError *_Nonnull)error;
+- (void)didPresentFeedbackDialog;
+- (void)didDismissFeedbackDialog;
+- (void)didReceiveCheckpointAction; // if checkpoint has a payload that wants to present
+@end
+
 
 @class PTFeedbackViewController;
 @interface PTConnect : NSObject
@@ -37,7 +47,8 @@ enum {
     PTContentTypeWeb = 2 //For web apps
 };
 
-
+// delegate method for capturing response from playtest (optional)
+@property (nonatomic, weak) _Nullable id <PTConnectDelegate> delegate;
 
 // how the SDK should collect screenshots and content
 @property (nonatomic,assign) PTContentType contenttype;
@@ -58,7 +69,6 @@ enum {
 @property (assign,readwrite) BOOL engagementViewHidden;
 
 
-
 // return data once a build has been validated
 @property (nonatomic,assign) NSString * _Nullable displayName;
 @property (nonatomic,assign) NSString * _Nullable lastName;
@@ -66,7 +76,8 @@ enum {
 @property (assign,readwrite) BOOL isAnonymousUser;
 @property (nonatomic,assign) NSString * _Nullable sessionID;
 @property (nonatomic,assign) NSString * _Nullable avatarURL;
-@property (nonatomic,strong) NSString * _Nullable deviceToken;
+@property (nonatomic,assign) NSString * _Nullable studioAvatarURL;
+@property (nonatomic,strong) NSData * _Nullable deviceToken;
 
 
 // optional: listen for prompting feedback
@@ -87,34 +98,55 @@ extern NSString *_Nonnull const apiURL;
 + (PTConnect * _Nonnull)manager;
 
 
-// required
+// initialize playtest SDK. Set FeedbackID and ApiKey manually before calling this method
 - (void) setup;
+
+// initialize playtest SDK with all properties at once
 - (void) setupFeedbackID:(NSString *_Nonnull)feedbackID withApiKey:(NSString *_Nonnull)apikey;
 
-// Setup log level for debugging purposes (PTLogLevel can either be PTLogLevelNone, PTLogLevelDebug, PTLoglevelVerbose)
-- (void)setLogLevel:(PTLogLevel)loglevel;
+// mark checkpoint with NSString payload. This string needs to be a JSON in order to serialize
+- (void) markCheckpoint:(NSString *_Nonnull)checkpoint withScreenshot:(BOOL)addScreenshot withEventString:(NSString * _Nullable)sendEventData onCompletion:(void (^_Null_unspecified)(NSData *_Nullable responseData, NSError *_Nullable error))onCompletion;
 
-// Setup push notification
-- (void)setPushNotification:(NSData *_Nullable)deviceToken;
-- (void)didReceivePushNotification:(NSDictionary *_Nullable)userInfo;
-
-// checkpoint registration
+// mark checkpoint with NSDictionary
 - (void) markCheckpoint:(NSString *_Nonnull)checkpoint withScreenshot:(BOOL)addScreenshot withEventData:(NSDictionary * _Nullable)sendEventData onCompletion:(void (^_Null_unspecified)(NSData *_Nullable responseData, NSError *_Nullable error))onCompletion;
 
-- (void) promptUserForFeedbackWithQuestion:(NSString * _Nullable)question presentingViewController:(UIViewController * _Nonnull)viewcontroller;
 
-// set root viewcontroller manually
+// OPTIONALS
+// Setup log level for debugging purposes (PTLogLevel can either be PTLogLevelNone, PTLogLevelDebug, PTLoglevelVerbose)
+- (void) setLogLevel:(PTLogLevel)loglevel;
+
+// set playtest viewcontroller manually
 - (void) setRootViewController:(UIViewController *_Nonnull)controller;
-- (void) presentFeedbackScreen:(id _Nonnull)sender;
-- (void) startScreenRecording;
-- (void) stopScreenRecording;
 
-// get uiviewcontroller
+// get current registered viewcontroller to pop all playtest events
 - (UIViewController *_Nonnull) getCurrentRootViewController;
 
-//pause application message handling
--(void)pauseApplication:(BOOL)state;
+// show or dismiss engagementview. Can be used to manually control when the view is displayed. [[PTConnect manager]showEngagementView:NO]; at launch will disable the automatic displaying
+-(void)showEngagementView:(BOOL)state;
 
--(NSString *_Nonnull)getUserDeviceID;
+// skip engagement view and show feedback screen directly
+- (void) presentFeedbackScreen:(id _Nonnull)sender;
+
+// Setup push notification
+- (void) setPushNotification:(NSData *_Nullable)deviceToken;
+- (void) didReceivePushNotification:(NSDictionary *_Nullable)userInfo;
+
+// get current SDK version
+- (NSString *_Nonnull) getSDKVersionNumber;
+
+
+// BETA FEATURES
+// record screen
+- (void) startScreenRecording;
+- (void) stopScreenRecording;
+- (void) promptUserForFeedbackWithQuestion:(NSString * _Nullable)question presentingViewController:(UIViewController * _Nonnull)viewcontroller;
+- (NSString *_Nonnull) getUserDeviceID;
+
+
+
+
+
+
+
 
 @end
